@@ -1,11 +1,11 @@
 {
-  "name": "Example Plugin",
-  "author": "John Doe",
+  "name": "Offline Time Tracker",
+  "author": "Sfmqur",
   "flags": ["debug", "_root"],
   "api_version": 1,
   "publish": {
-    "tags": ["template", "root"],
-    "description": "Decky example plugin.",
-    "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
+    "tags": ["utility", "gaming", "offline", "time", "tracker", "playtime"],
+    "description": "Track your game time while playing offline on Steam Deck.",
+    "image": "https://raw.githubusercontent.com/sfmqur/offline-time-tracker/main/assets/logo.png"
   }
 }
