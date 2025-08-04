@@ -39,6 +39,17 @@ The plugin monitors your active game and network status. When you're offline and
 
 All your playtime data is stored locally on your Steam Deck and is not sent to any external servers. Your gaming data stays private and secure.
 
+## Building
+# Install project dependencies  
+```bash
+npm install
+```
+
+# Build frontend with 
+``` bash
+npm run build
+```
+
 ## Troubleshooting
 
 - If time tracking doesn't start:
