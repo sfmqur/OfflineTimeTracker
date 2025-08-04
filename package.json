@@ -30,7 +30,7 @@
   "homepage": "https://github.com/sfmqur/offline-time-tracker#readme",
   "devDependencies": {
     "@decky/rollup": "^1.0.1",
-    "@decky/ui": "^4.7.2",
+    "@decky/ui": "^4.10.4",
     "@types/date-fns": "^2.5.3",
     "@types/node": "^24.1.0",
     "@types/react": "^18.3.3",
