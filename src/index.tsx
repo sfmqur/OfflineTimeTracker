@@ -18,7 +18,7 @@ import {
   staticClasses
 } from '@decky/ui';
 import { FaTrash, FaInfoCircle, FaClock } from 'react-icons/fa';
-import { formatDistanceToNow, intervalToDuration } from 'date-fns';
+import { format, formatDistance, intervalToDuration as intlFormatDuration } from 'date-fns';
 
 declare global {
   interface Window {
@@ -43,9 +43,12 @@ type GameTimeMap = Record<string, GameTimeData>;
 
 // Format seconds into human-readable time (e.g., "2h 30m 15s")
 const formatTime = (seconds: number): string => {
-  const duration = intervalToDuration({ start: 0, end: seconds * 1000 });
-  const parts = [];
+  const duration = intervalToDuration({ 
+    start: new Date(0), 
+    end: new Date(seconds * 1000) 
+  });
   
+  const parts = [];
   if (duration.days) parts.push(`${duration.days}d`);
   if (duration.hours) parts.push(`${duration.hours}h`);
   if (duration.minutes || parts.length === 0) parts.push(`${duration.minutes || 0}m`);
@@ -80,7 +83,7 @@ const GameTimeItem: VFC<{
   onClear: (gameId: string) => void;
 }> = ({ gameId, gameName, timeData, onClear }) => {
   const lastPlayed = timeData.last_played 
-    ? `Last played ${formatDistanceToNow(new Date(timeData.last_played * 1000), { addSuffix: true })}`
+    ? `Last played ${formatDistance(new Date(timeData.last_played * 1000), new Date(), { addSuffix: true })}`
     : 'Never played';
 
   return (
