@@ -6,7 +6,6 @@ import {
   PanelSectionRow, 
   Toggle, 
   Spinner,
-  ScrollPanelGroup,
   DialogButton,
   DialogButtonPrimary,
   DialogButtonSecondary,
@@ -18,7 +17,6 @@ import {
   staticClasses
 } from '@decky/ui';
 import { FaTrash, FaInfoCircle, FaClock } from 'react-icons/fa';
-import { format, formatDistance, intervalToDuration as intlFormatDuration } from 'date-fns';
 
 declare global {
   interface Window {
@@ -43,18 +41,32 @@ type GameTimeMap = Record<string, GameTimeData>;
 
 // Format seconds into human-readable time (e.g., "2h 30m 15s")
 const formatTime = (seconds: number): string => {
-  const duration = intervalToDuration({ 
-    start: new Date(0), 
-    end: new Date(seconds * 1000) 
-  });
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
   
   const parts = [];
-  if (duration.days) parts.push(`${duration.days}d`);
-  if (duration.hours) parts.push(`${duration.hours}h`);
-  if (duration.minutes || parts.length === 0) parts.push(`${duration.minutes || 0}m`);
-  parts.push(`${duration.seconds || 0}s`);
+  if (days > 0) parts.push(`${days}d`);
+  if (hours > 0) parts.push(`${hours}h`);
+  if (minutes > 0 || parts.length === 0) parts.push(`${minutes}m`);
+  parts.push(`${secs}s`);
   
   return parts.join(' ');
+};
+
+// Format relative time (e.g., "2 hours ago")
+const formatRelativeTime = (timestamp: number): string => {
+  const now = Date.now() / 1000;
+  const diff = now - timestamp;
+  
+  if (diff < 60) return 'just now';
+  if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
+  if (diff < 604800) return `${Math.floor(diff / 86400)} days ago`;
+  if (diff < 2592000) return `${Math.floor(diff / 604800)} weeks ago`;
+  if (diff < 31536000) return `${Math.floor(diff / 2592000)} months ago`;
+  return `${Math.floor(diff / 31536000)} years ago`;
 };
 
 // Confirmation dialog component
@@ -83,7 +95,7 @@ const GameTimeItem: VFC<{
   onClear: (gameId: string) => void;
 }> = ({ gameId, gameName, timeData, onClear }) => {
   const lastPlayed = timeData.last_played 
-    ? `Last played ${formatDistance(new Date(timeData.last_played * 1000), new Date(), { addSuffix: true })}`
+    ? `Last played ${formatRelativeTime(timeData.last_played)}`
     : 'Never played';
 
   return (
@@ -211,12 +223,8 @@ const Content: VFC = () => {
   };
 
   return (
-    <ScrollPanelGroup>
-      <ScrollPanelSection>
-        <ScrollPanelSectionHeader>
-          Tracking Status
-        </ScrollPanelSectionHeader>
-        <PanelSection>
+    <div>
+      <PanelSection title="Tracking Status">
           <PanelSectionRow>
             <div style={{ 
               display: 'flex', 
@@ -269,13 +277,8 @@ const Content: VFC = () => {
             </React.Fragment>
           )}
         </PanelSection>
-      </ScrollPanelSection>
-
-      <ScrollPanelSection>
-        <ScrollPanelSectionHeader>
-          Tracked Games
-        </ScrollPanelSectionHeader>
-        <PanelSection>
+        
+        <PanelSection title="Tracked Games">
           {isLoading ? (
             <PanelSectionRow>
               <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
@@ -305,8 +308,7 @@ const Content: VFC = () => {
             ))
           )}
         </PanelSection>
-      </ScrollPanelSection>
-    </ScrollPanelGroup>
+    </div>
   );
 };
 
