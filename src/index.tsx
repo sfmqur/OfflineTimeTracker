@@ -1,22 +1,23 @@
+import * as React from 'react';
+import { VFC, useEffect, useState } from 'react';
+import { definePlugin } from '@decky/api';
 import { 
   PanelSection, 
   PanelSectionRow, 
   Toggle, 
   Spinner,
   ScrollPanelGroup,
-  ScrollPanelSection,
-  ScrollPanelSectionHeader,
   DialogButton,
   DialogButtonPrimary,
   DialogButtonSecondary,
   DialogBodyText,
   DialogFooter,
   showModal,
-  ProgressBarWithInfo
-} from "@decky/ui";
-import { FaTrash, FaInfoCircle, FaClock } from "react-icons/fa";
-import { definePlugin, ServerAPI } from "@decky/api";
-import { VFC, useEffect, useState } from "react";
+  ProgressBarWithInfo,
+  ButtonItem,
+  staticClasses
+} from '@decky/ui';
+import { FaTrash, FaInfoCircle, FaClock } from 'react-icons/fa';
 import { formatDistanceToNow, intervalToDuration } from 'date-fns';
 
 declare global {
@@ -76,8 +77,8 @@ const GameTimeItem: VFC<{
   gameId: string; 
   gameName: string; 
   timeData: GameTimeData;
-  onClear: (gameName: string) => void;
-}> = ({ gameName, timeData, onClear }) => {
+  onClear: (gameId: string) => void;
+}> = ({ gameId, gameName, timeData, onClear }) => {
   const lastPlayed = timeData.last_played 
     ? `Last played ${formatDistanceToNow(new Date(timeData.last_played * 1000), { addSuffix: true })}`
     : 'Never played';
@@ -112,7 +113,7 @@ const GameTimeItem: VFC<{
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
         <DialogButton 
           style={{ height: '30px', padding: '0 10px', minWidth: 'auto' }}
-          onClick={() => onClear(gameName)}
+          onClick={() => onClear(gameId)}
         >
           <FaTrash style={{ marginRight: '5px' }} /> Clear
         </DialogButton>
@@ -135,6 +136,12 @@ const Content: VFC = () => {
         const response = await window.DeckyPluginLoader.callServerMethod('get_all_offline_times');
         if (response.success) {
           setGameTimes(response.result || {});
+          
+          // Get current tracking status
+          const status = await window.DeckyPluginLoader.callServerMethod('get_tracking_status');
+          if (status.success) {
+            setIsTracking(status.result?.enabled ?? true);
+          }
         }
       } catch (e) {
         console.error('Failed to load game times', e);
@@ -159,9 +166,9 @@ const Content: VFC = () => {
   };
 
   // Clear game data
-  const clearGameData = async (gameName?: string) => {
+  const clearGameData = async (gameId?: string) => {
     try {
-      const params = gameName ? { game_name: gameName } : {};
+      const params = gameId ? { game_id: gameId } : {};
       const response = await window.DeckyPluginLoader.callServerMethod('clear_offline_data', params);
       if (response.success) {
         // Reload data after clearing
@@ -176,12 +183,13 @@ const Content: VFC = () => {
   };
 
   // Handle clear button click
-  const handleClearClick = (gameName: string) => {
+  const handleClearClick = (gameId: string) => {
+    const gameName = Object.keys(gameTimes).includes(gameId) ? gameId : 'this game';
     showModal(
       <ConfirmDialog
         title="Clear Data"
         message={`Are you sure you want to clear offline time data for ${gameName}?`}
-        onConfirm={() => clearGameData(gameName)}
+        onConfirm={() => clearGameData(gameId)}
         onCancel={() => {}}
       />
     );
@@ -223,207 +231,10 @@ const Content: VFC = () => {
           </PanelSectionRow>
           
           {isLoading ? (
-            <PanelSectionRow style={{ display: 'flex', justifyContent: 'center' }}>
-              <Spinner />
-            </PanelSectionRow>
-          ) : (
-            <>
-              <ScrollPanelSection>
-                <ScrollPanelSectionHeader>
-                  Tracked Games
-                </ScrollPanelSectionHeader>
-                {Object.entries(gameTimes).length > 0 ? (
-                  Object.entries(gameTimes).map(([gameId, timeData]) => (
-                    <GameTimeItem
-                      key={gameId}
-                      gameId={gameId}
-                      gameName={gameId} // In a real implementation, you'd want to map this to the actual game name
-                      timeData={timeData}
-                      onClear={handleClearClick}
-                    />
-                  ))
-                ) : (
-                  <div style={{ textAlign: 'center', padding: '1em', opacity: 0.7 }}>
-                    No offline game time tracked yet. Play a game while offline to see stats here.
-                  </div>
-                )}
-              </ScrollPanelSection>
-              
-              {Object.keys(gameTimes).length > 0 && (
-                <PanelSectionRow>
-                  <DialogButton 
-                    style={{ width: '100%', marginTop: '1em' }}
-                    onClick={handleClearAllClick}
-                  >
-                    <FaTrash style={{ marginRight: '10px' }} />
-                    Clear All Data
-                  </DialogButton>
-                </PanelSectionRow>
-              )}
-            </>
-          )}
-        </PanelSection>
-      </ScrollPanelSection>
-      
-      <ScrollPanelSection>
-        <ScrollPanelSectionHeader>
-          About
-        </ScrollPanelSectionHeader>
-        <PanelSection>
-          <div style={{ padding: '0.5em', opacity: 0.8, lineHeight: 1.5 }}>
-            <p>
-              <FaInfoCircle style={{ marginRight: '0.5em' }} />
-              This plugin tracks your game time when playing offline. Time is only recorded when you're offline.
-            </p>
-          </div>
-        </PanelSection>
-      </ScrollPanelSection>
-    </ScrollPanelGroup>
-  );
-};
-
-export default definePlugin((serverApi: ServerAPI) => {
-  // Make server API available globally for callbacks
-  window.DeckyPluginLoader = {
-    callServerMethod: (method: string, params?: any) => 
-      serverApi.callPluginMethod(method, params || {})
-    <div style={{ marginBottom: '1em' }}>
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        marginBottom: '0.5em'
-      }}>
-        <div style={{ fontWeight: 'bold' }}>{gameName}</div>
-        <div style={{ fontSize: '0.9em', opacity: 0.8 }}>{lastPlayed}</div>
-      </div>
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center',
-        marginBottom: '0.5em'
-      }}>
-        <FaClock style={{ marginRight: '0.5em' }} />
-        <div style={{ flexGrow: 1 }}>
-          <div style={{ marginBottom: '0.25em' }}>
-            {formatTime(timeData.total_seconds)}
-          </div>
-          <ProgressBarWithInfo 
-            nProgress={Math.min(timeData.total_seconds / 3600, 100)} 
-            sOperationText=""
-          />
-        </div>
-      </div>
-      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <DialogButton 
-          style={{ height: '30px', padding: '0 10px', minWidth: 'auto' }}
-          onClick={() => onClear(gameId)}
-        >
-          <FaTrash style={{ marginRight: '5px' }} /> Clear
-        </DialogButton>
-      </div>
-    </div>
-  );
-};
-
-const Content: VFC = () => {
-  const [isTracking, setIsTracking] = useState<boolean>(true);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [gameTimes, setGameTimes] = useState<GameTimeMap>([]);
-  const [showClearAllConfirm, setShowClearAllConfirm] = useState<boolean>(false);
-  const [gameToClear, setGameToClear] = useState<string | null>(null);
-
-  const loadTrackingStatus = async () => {
-    try {
-      const response = await window.DeckyPluginLoader.callServerMethod('get_all_offline_times');
-      if (response.success) {
-        setGameTimes(response.result || {});
-      }
-    } catch (e) {
-      console.error('Failed to load tracking data', e);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const toggleTracking = async (enabled: boolean) => {
-    try {
-      const response = await window.DeckyPluginLoader.callServerMethod('set_tracking_enabled', { enabled });
-      if (response.success) {
-        setIsTracking(enabled);
-      }
-    } catch (e) {
-      console.error('Failed to toggle tracking', e);
-    }
-  };
-
-  const clearGameData = async (gameId?: string) => {
-    try {
-      const response = await window.DeckyPluginLoader.callServerMethod('clear_offline_data', { gameId });
-      if (response.success) {
-        await loadTrackingStatus();
-      }
-    } catch (e) {
-      console.error('Failed to clear game data', e);
-    }
-  };
-
-  const handleClearClick = (gameId: string, gameName: string) => {
-    setGameToClear(gameId);
-    showModal(
-      <ConfirmClearDialog 
-        gameName={gameName}
-        onConfirm={() => {
-          clearGameData(gameId);
-          setGameToClear(null);
-        }}
-        onCancel={() => setGameToClear(null)}
-      />
-    );
-  };
-
-  const handleClearAllClick = () => {
-    setShowClearAllConfirm(true);
-    showModal(
-      <ConfirmClearDialog 
-        onConfirm={() => {
-          clearGameData();
-          setShowClearAllConfirm(false);
-        }}
-        onCancel={() => setShowClearAllConfirm(false)}
-      />
-    );
-  };
-
-  useEffect(() => {
-    loadTrackingStatus();
-  }, []);
-
-  return (
-    <ScrollPanelGroup>
-      <ScrollPanelSection>
-        <ScrollPanelSectionHeader>
-          Tracking Status
-        </ScrollPanelSectionHeader>
-        <PanelSection>
-          <PanelSectionRow>
-            <div style={{ 
-              display: 'flex', 
-              justifyContent: 'space-between', 
-              alignItems: 'center',
-              width: '100%'
-            }}>
-              <span>Enable Offline Time Tracking</span>
-              <Toggle
-                value={isTracking}
-                onChange={toggleTracking}
-                disabled={isLoading}
-              />
-            </div>
-          </PanelSectionRow>
-          
-          {isLoading ? (
-            <PanelSectionRow style={{ display: 'flex', justifyContent: 'center' }}>
-              <Spinner />
+            <PanelSectionRow>
+              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <Spinner />
+              </div>
             </PanelSectionRow>
           ) : (
             <React.Fragment>
@@ -441,15 +252,16 @@ const Content: VFC = () => {
               </PanelSectionRow>
               
               <PanelSectionRow>
-                <ButtonItem
-                  layout="below"
-                  onClick={handleClearAllClick}
-                  disabled={Object.keys(gameTimes).length === 0}
-                  style={{ marginTop: '1em' }}
-                >
-                  <FaTrash style={{ marginRight: '0.5em' }} />
-                  Clear All Data
-                </ButtonItem>
+                <div style={{ marginTop: '1em', width: '100%' }}>
+                  <ButtonItem
+                    layout="below"
+                    onClick={handleClearAllClick}
+                    disabled={Object.keys(gameTimes).length === 0}
+                  >
+                    <FaTrash style={{ marginRight: '0.5em' }} />
+                    Clear All Data
+                  </ButtonItem>
+                </div>
               </PanelSectionRow>
             </React.Fragment>
           )}
@@ -462,8 +274,10 @@ const Content: VFC = () => {
         </ScrollPanelSectionHeader>
         <PanelSection>
           {isLoading ? (
-            <PanelSectionRow style={{ display: 'flex', justifyContent: 'center' }}>
-              <Spinner />
+            <PanelSectionRow>
+              <div style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
+                <Spinner />
+              </div>
             </PanelSectionRow>
           ) : Object.keys(gameTimes).length === 0 ? (
             <PanelSectionRow>
@@ -493,16 +307,17 @@ const Content: VFC = () => {
   );
 };
 
-export default definePlugin((serverApi: ServerAPI) => {
-  // Initialize plugin
-  serverApi.routerHook.addRoute("/offline-time-tracker", Content);
+export default definePlugin(() => {
+  console.log("Offline Time Tracker plugin initializing, this is called once on frontend startup");
 
-  // Clean up on unmount
-  return () => {
-    serverApi.routerHook.removeRoute("/offline-time-tracker");
-    // The function triggered when your plugin unloads
-    onDismount() {
-      console.log("Unloading")
+
+  return {
+    name: "Offline Time Tracker",
+    titleView: <div className={staticClasses.Title}>Offline Time Tracker</div>,
+    content: <Content />,
+    icon: <FaClock />,
+    onDismount: () => {
+      console.log("Unloading Offline Time Tracker plugin");
     },
   };
 });
