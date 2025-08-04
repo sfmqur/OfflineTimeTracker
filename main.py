@@ -10,6 +10,7 @@ import decky
 # Constants
 CHECK_INTERVAL = 180 # seconds, where we check if we're offline
 SLEEP_INTERVAL = 60 # seconds, where we sleep in the main loop
+SESSION_LIMIT = 100 # maximum number of sessions to keep per game
 
 class Plugin:
     def __init__(self):
@@ -178,8 +179,8 @@ class Plugin:
             })
             
             # Keep only the last 100 sessions per game to prevent file bloat
-            if len(self.offline_data[game_id_str]['sessions']) > 100:
-                self.offline_data[game_id_str]['sessions'] = self.offline_data[game_id_str]['sessions'][-100:]
+            if len(self.offline_data[game_id_str]['sessions']) > SESSION_LIMIT:
+                self.offline_data[game_id_str]['sessions'] = self.offline_data[game_id_str]['sessions'][-SESSION_LIMIT:]
             
             self._save_data()
         
