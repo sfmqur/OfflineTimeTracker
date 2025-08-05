@@ -57,3 +57,7 @@ cli/*
 cli/decky
 
 .vscode/*
+
+
+# build files
+offline_time_tracker.zip
